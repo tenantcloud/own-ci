@@ -53,9 +53,6 @@ function get_webhook_data() {
 }
 
 function send_logs_to_slack() {
-	sed 's/\x1b\[[^\x1b]*m//g' ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log \
-		> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp
-	mv ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
 	SLACK_JSON_FILE="${BUILD_DIRECTORY}/$(date +%s).json"
 	slack file upload $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log $SLACK_CHANNEL \
 		> ${SLACK_JSON_FILE}
@@ -84,6 +81,9 @@ if [ ! -f $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
 		$DOCKER_IMAGE /pipeline.sh > $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log
     cat $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}/storage/logs/laravel* \
     	>> $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log
+	# sed 's/\x1b\[[^\x1b]*m//g' ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log \
+	# 	> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp
+	# mv ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
 else
     sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
 fi
@@ -91,20 +91,19 @@ fi
 end=`date +%s`
 runtime=$((end-start))
 
-if [ ! -z "$(sed -e '/^OK/p' $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log)" ]; then
-    if ! $IS_UPDATED; then
+LOG_FILE_DOCKER_RUN="$BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log"
+if [ ! -z "$(sed -e '/^OK/p' $LOG_FILE_DOCKER_RUN)" ] && [ ! $IS_UPDATED ]; then
         slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
 		send_logs_to_slack
         # set status success
         get_access_token
-        statuses_build "SUCCESSFUL" $BUILD_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
-    fi
+        statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
 else
     slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nyour code with errors - :hankey:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)" $SLACK_CHANNEL
 	send_logs_to_slack
     # set status fail
     get_access_token
-    statuses_build "FAILED" $BUILD_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
+    statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
 fi
 
 }
@@ -127,7 +126,7 @@ else
 			sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
 			touch $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock
 			slack chat send "$PULLREQUEST_STATE testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\`"
-			statuses_build "STOPPED" $BUILD_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
+			statuses_build "STOPPED" $BITBUCKET_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
 		fi
 
 		# If update request
@@ -137,11 +136,11 @@ else
 				docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
 				sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
 				touch $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock
-				statuses_build "STOPPED" $BUILD_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
+				statuses_build "STOPPED" $BITBUCKET_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
 			else
 				# set status build in progress
 				get_access_token
-				statuses_build "INPROGRESS" $BUILD_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
+				statuses_build "INPROGRESS" $BITBUCKET_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
 				slack chat send "Started testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\`
 					created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
 
