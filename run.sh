@@ -127,7 +127,7 @@ else
 			sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
 			touch $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock
 			slack chat send "$PULLREQUEST_STATE testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\`"
-			statuses_build "STOPPED" $BUILD_KEY $REPO_SLUG "" "Pipeline Bot"
+			statuses_build "STOPPED" $BUILD_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
 		fi
 
 		# If update request
@@ -137,11 +137,11 @@ else
 				docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
 				sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
 				touch $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock
-				statuses_build "STOPPED" $BUILD_KEY $REPO_SLUG "" "Pipeline Bot"
+				statuses_build "STOPPED" $BUILD_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
 			else
 				# set status build in progress
 				get_access_token
-				statuses_build "INPROGRESS" $BUILD_KEY $REPO_SLUG "" "Pipeline Bot"
+				statuses_build "INPROGRESS" $BUILD_KEY $REPO_SLUG $COMMIT_API_LINK "Pipeline Bot"
 				slack chat send "Started testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\`
 					created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
 
