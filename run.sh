@@ -56,7 +56,7 @@ function send_logs_to_slack() {
 	SLACK_JSON_FILE="${BUILD_DIRECTORY}/$(date +%s).json"
 	slack file upload $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log $SLACK_CHANNEL \
 		> ${SLACK_JSON_FILE}
-	LOG_FILE_LINK=$(jq -r .file.permalink ${SLACK_JSON_FILE})
+	LOG_FILE_LINK=$(jq -r .file.url_private ${SLACK_JSON_FILE})
 	rm ${SLACK_JSON_FILE}
 	slack file upload ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log $SLACK_CHANNEL
 	sudo rm -rf ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}*
@@ -131,7 +131,7 @@ else
 
 		# If update request
 		if [ "$PULLREQUEST_STATE" = "OPEN" ]; then
-			if [ -d $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH} ] || [ -f $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
+			if [ ! -z $(find ${BUILD_DIRECTORY} -maxdepth 1 -mindepth 1 -type d -name "${BRANCH_NAME}*" | sed -e 's/^.*\/builds\///') ] || [ -f $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
 				IS_UPDATED=true
 				docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
 				sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
