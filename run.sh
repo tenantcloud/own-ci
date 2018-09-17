@@ -115,11 +115,11 @@ BRANCH_NAME=$1
 # TODO:
 # get json data for this repository and run testing
 else
-WEBHOOK_JSON_FILE="$BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.json"
-mv ./webhook.json $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.json
 # Check if getting correct JSON file
-	if jq -e . >/dev/null 2>&1 <<< $(cat $WEBHOOK_JSON_FILE); then
-		get_webhook_data $WEBHOOK_JSON_FILE
+	if jq -e . >/dev/null 2>&1 <<< $(cat ./webhook.json); then
+		get_webhook_data "./webhook.json"
+		WEBHOOK_JSON_FILE="$BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.json"
+		mv ./webhook.json $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.json
 
 		# If decline or merged request
 		if [ "$PULLREQUEST_STATE" = "DECLINED" ] || [ "$PULLREQUEST_STATE" = "MERGED" ]; then
