@@ -78,7 +78,7 @@ if [ ! -f $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
     docker run --rm -it --name="${BRANCH_NAME}-${BRANCH_HASH}" \
 		-v $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}:/var/www/html \
 		-v $BUILD_DIRECTORY/${VENDOR_FOLDER}:/var/www/html/vendor \
-		$DOCKER_IMAGE /pipeline.sh > $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log
+		$DOCKER_IMAGE /pipeline.sh > $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log #  | perl -pe 's/\e\[?.*?[\@-~]//g'
     cat $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}/storage/logs/laravel* \
     	>> $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log
 	sed 's/\x1b\[[^\x1b]*m//g' ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log \
@@ -92,12 +92,12 @@ end=`date +%s`
 runtime=$((end-start))
 
 LOG_FILE_DOCKER_RUN="$BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.log"
-if [ ! -z "$(sed -e '/^OK/p' $LOG_FILE_DOCKER_RUN)" ] && [ ! $IS_UPDATED ]; then
-        slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
-		send_logs_to_slack
-        # set status success
-        get_access_token
-        statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
+if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ]; then
+	slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
+	send_logs_to_slack
+	# set status success
+	get_access_token
+	statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
 else
     slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nyour code with errors - :hankey:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)" $SLACK_CHANNEL
 	send_logs_to_slack
@@ -141,8 +141,7 @@ else
 				# set status build in progress
 				get_access_token
 				statuses_build "INPROGRESS" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK "Pipeline Bot"
-				slack chat send "Started testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\`
-					created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
+				slack chat send "Started testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
 
 				run_pipeline
 			fi
