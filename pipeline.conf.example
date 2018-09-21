@@ -1,5 +1,5 @@
 # general
-PIPELINE_DIRECTORY=/path/to/your/pipeline/directory
+PIPELINE_DIRECTORY=$(pwd) # or you can configure manually. e.g. /path/to/your/pipeline/directory
 BUILD_DIRECTORY=${PIPELINE_DIRECTORY}/builds
 
 # docker 
@@ -9,11 +9,6 @@ DOCKER_IMAGE=tenantcloud/pipeline
 CLIENT_ID=WWWWWWWWWWWWWWWWWW
 CLIENT_SECRET=YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
 GRANT_TYPE=client_credentials
-
-# repository
-BITBUCKET_USERNAME=username
-REPO_SLUG=repository_name
-BITBUCKET_KEY=KEY
 
 # slack
 SLACK_CLI_TOKEN="xxxx-1234567890-123456789012-GkhjgKuyYu65768979GKretQ"
