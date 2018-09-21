@@ -69,6 +69,7 @@ function start_container() {
     docker run --rm -it --name="${BRANCH_NAME}-${BRANCH_HASH}" \
 		-v ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}:/var/www/html \
 		-v ${BUILD_DIRECTORY}/${VENDOR_FOLDER}:/var/www/html/vendor \
+		-v ${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}:/var/www/html/node_modukes \
 		$DOCKER_IMAGE /pipeline.sh > ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log #  | perl -pe 's/\e\[?.*?[\@-~]//g'
     cat ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/storage/logs/laravel* \
     	>> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log
@@ -77,41 +78,57 @@ function start_container() {
 	mv ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
 }
 
+function get_repository() {
+	git archive --remote=ssh://git@bitbucket.org/${BITBUCKET_USERNAME}/${REPO_SLUG}.git --format=zip \
+		--output="${BRANCH_NAME}-${BRANCH_HASH}.zip" $BRANCH_NAME
+	sudo rm -rf ${BUILD_DIRECTORY}/${BRANCH_NAME}-*
+	unzip -qq ${BRANCH_NAME}-${BRANCH_HASH}.zip -d ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}
+	rm ${BRANCH_NAME}-${BRANCH_HASH}.zip
+}
+
+function report_to_slack() {
+	LOG_FILE_DOCKER_RUN="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log"
+	if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ]; then
+		slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
+		send_logs_to_slack
+		# set status success
+		get_access_token
+		statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
+	else
+		slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nyour code with errors - :hankey:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)" $SLACK_CHANNEL
+		send_logs_to_slack
+		# set status fail
+		get_access_token
+		statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
+	fi
+}
+
+function check_cache_folder() {
+	VENDOR_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/composer.json | awk '{ print $1 }'`
+	NODE_MODULES_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/package.json | awk '{ print $1 }'`
+}
+
 function run_pipeline () {
 
 start=`date +%s`
 echo "Start cloning and execute branch ${BRANCH_NAME}."
 echo "$(date)"
-git archive --remote=ssh://git@bitbucket.org/${BITBUCKET_USERNAME}/${REPO_SLUG}.git --format=zip \
-	--output="${BRANCH_NAME}-${BRANCH_HASH}.zip" $BRANCH_NAME
-unzip -qq ${BRANCH_NAME}-${BRANCH_HASH}.zip -d ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}
-rm ${BRANCH_NAME}-${BRANCH_HASH}.zip
-VENDOR_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/composer.json | awk '{ print $1 }'`
+
+get_repository
+
+check_cache_folder
 
 # If not running previous build
 if [ ! -f ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
 	start_container
 else
-    sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}*
+    sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-*
 fi
 
 end=`date +%s`
 runtime=$((end-start))
 
-LOG_FILE_DOCKER_RUN="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log"
-if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ]; then
-	slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
-	send_logs_to_slack
-	# set status success
-	get_access_token
-	statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
-else
-    slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nyour code with errors - :hankey:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)" $SLACK_CHANNEL
-	send_logs_to_slack
-    # set status fail
-    get_access_token
-    statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
-fi
+report_to_slack
 
 }
 
@@ -146,7 +163,9 @@ else
 				statuses_build "STOPPED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
 				slack chat send "Stopped testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}*" $SLACK_CHANNEL
 				slack chat send "Started again of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
+				get_repository
 				start_container
+				report_to_slack
 			else
 				# set status build in progress
 				get_access_token
