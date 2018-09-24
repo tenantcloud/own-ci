@@ -69,7 +69,7 @@ function start_container() {
     docker run --rm -it --name="${BRANCH_NAME}-${BRANCH_HASH}" \
 		-v ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}:/var/www/html \
 		-v ${BUILD_DIRECTORY}/${VENDOR_FOLDER}:/var/www/html/vendor \
-		-v ${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}:/var/www/html/node_modukes \
+		-v ${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}:/var/www/html/node_modules \
 		$DOCKER_IMAGE /pipeline.sh > ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log #  | perl -pe 's/\e\[?.*?[\@-~]//g'
     cat ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/storage/logs/laravel* \
     	>> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log
