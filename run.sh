@@ -177,3 +177,5 @@ else
 		fi
 	fi
 fi
+
+rm ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
