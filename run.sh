@@ -164,6 +164,7 @@ else
 				slack chat send "Stopped testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}*" $SLACK_CHANNEL
 				slack chat send "Started again of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
 				get_repository
+				check_cache_folder
 				start_container
 				report_to_slack
 			else
