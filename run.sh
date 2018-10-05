@@ -128,7 +128,9 @@ fi
 end=`date +%s`
 runtime=$((end-start))
 
-report_to_slack
+if [ $IS_UPDATED = "true" ]; then
+	report_to_slack
+fi
 
 }
 
@@ -163,11 +165,14 @@ else
 				statuses_build "STOPPED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
 				slack chat send "Stopped testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}*" $SLACK_CHANNEL
 				slack chat send "Started again of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
+				start=`date +%s`
 				get_repository
 				check_cache_folder
 				get_access_token
 				statuses_build "INPROGRESS" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
 				start_container
+				end=`date +%s`
+				runtime=$((end-start))
 				report_to_slack
 			else
 				# set status build in progress
