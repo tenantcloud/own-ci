@@ -128,9 +128,7 @@ fi
 end=`date +%s`
 runtime=$((end-start))
 
-if [ $IS_UPDATED = "true" ]; then
-	report_to_slack
-fi
+report_to_slack
 
 }
 
