@@ -88,7 +88,8 @@ function get_repository() {
 
 function report_to_slack() {
 	LOG_FILE_DOCKER_RUN="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log"
-	if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ]; then
+	LOCK_FILE_DOCKER_RUN="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock"
+	if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ] && [ ! -f ${LOCK_FILE_DOCKER_RUN} ]; then
 		slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
 		send_logs_to_slack
 		# set status success
@@ -101,6 +102,7 @@ function report_to_slack() {
 		get_access_token
 		statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
 	fi
+	rm $LOCK_FILE_DOCKER_RUN
 }
 
 function check_cache_folder() {
