@@ -89,18 +89,20 @@ function get_repository() {
 function report_to_slack() {
 	LOG_FILE_DOCKER_RUN="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log"
 	LOCK_FILE_DOCKER_RUN="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock"
-	if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ] && [ ! -f ${LOCK_FILE_DOCKER_RUN} ]; then
-		slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
-		send_logs_to_slack
-		# set status success
-		get_access_token
-		statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
-	else
-		slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nyour code with errors - :hankey:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)" $SLACK_CHANNEL
-		send_logs_to_slack
-		# set status fail
-		get_access_token
-		statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
+	if [ ! -f ${LOCK_FILE_DOCKER_RUN} ]; then
+		if [ ! -z "$(awk '/^OK/' $LOG_FILE_DOCKER_RUN)" ]; then
+			slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nHooray :tada:\nSuccessful build :champagne:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
+			send_logs_to_slack
+			# set status success
+			get_access_token
+			statuses_build "SUCCESSFUL" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
+		else
+			slack chat send "*${BRANCH_AUTHOR_FULLNAME}*,\nyour code with errors - :hankey:\nTest of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` lasted :timer_clock: $(date -d@$runtime -u +%H:%M:%S)" $SLACK_CHANNEL
+			send_logs_to_slack
+			# set status fail
+			get_access_token
+			statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
+		fi
 	fi
 	rm $LOCK_FILE_DOCKER_RUN
 }
