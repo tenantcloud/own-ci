@@ -108,8 +108,8 @@ function report_to_slack() {
 }
 
 function check_cache_folder() {
-	VENDOR_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/composer.json | awk '{ print $1 }'`
-	NODE_MODULES_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/package.json | awk '{ print $1 }'`
+	VENDOR_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/composer.lock | awk '{ print $1 }'`
+	NODE_MODULES_FOLDER=`md5sum ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/package-lock.json | awk '{ print $1 }'`
 }
 
 function run_pipeline () {
