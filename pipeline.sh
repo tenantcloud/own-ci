@@ -128,6 +128,9 @@ npm run test 2>&1 | sed -r "s:\x1B\[[0-9;]*[mK]::g" > ${FE_LOG_FILE}
 [[ ! -z "$(awk '/^OK/' ${BE_LOG_FILE})" ]] && BE_ERROR=true || BE_ERROR=false
 [[ -z "$(awk '/^TOTAL:.*FAILED/' ${FE_LOG_FILE})" ]] && FE_ERROR=true || FE_ERROR=false
 
+end=`date +%s`
+runtime=$((end-start))
+
 get_access_token
 
 if $BE_ERROR && $FE_ERROR ; then
