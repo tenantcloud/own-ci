@@ -119,8 +119,8 @@ if [ ! -d ${HTTP_DIR}/node_modules ]; then
   nmp i 
 fi
 FLDR_SIZE=$(du -s ${HTTP_DIR}/node_modules | awk '{print $1}')
-if [ "${FLDR_SIZE}" < 100 ]; then 
-  npm ci; 
+if [ ${FLDR_SIZE} -lt 100 ]; then 
+  npm i; 
 fi
 npm run testing
 npm run test 2>&1 | sed -r "s:\x1B\[[0-9;]*[mK]::g" > ${FE_LOG_FILE}
