@@ -119,7 +119,7 @@ if [ ! -d ${HTTP_DIR}/node_modules ]; then
   nmp i 
 fi
 FLDR_SIZE=$(du -s ${HTTP_DIR}/node_modules | awk '{print $1}')
-if [ "${FLDR_SIZE}" -eq "0" ]; then 
+if [ "${FLDR_SIZE}" < 100 ]; then 
   npm ci; 
 fi
 npm run testing
