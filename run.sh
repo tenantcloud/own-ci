@@ -66,16 +66,19 @@ function send_logs_to_slack() {
 }
 
 function start_container() {
-    docker run --rm -it --name="${BRANCH_NAME}-${BRANCH_HASH}" \
-		-v ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}:/var/www/html \
-		-v ${BUILD_DIRECTORY}/${VENDOR_FOLDER}:/var/www/html/vendor \
-		-v ${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}:/var/www/html/node_modules \
-		$DOCKER_IMAGE /pipeline.sh > ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log #  | perl -pe 's/\e\[?.*?[\@-~]//g'
-    cat ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/storage/logs/laravel* \
-    	>> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log
-	sed 's/\x1b\[[^\x1b]*m//g' ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log \
-		> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp
-	mv ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
+    docker run --rm -it --name="${REPO_SLUG}-${BRANCH_NAME}-${BRANCH_HASH}" \
+		-v $(echo ~$USER)/.ssh:/root/.ssh \
+		-v $(pwd):/builds \
+		-v ${WEBHOOK_JSON_FILE}:/webhook.json \
+		$DOCKER_IMAGE /builds/pipeline.sh
+
+	rm ${WEBHOOK_JSON_FILE}
+
+    # cat ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}/storage/logs/laravel* \
+    # 	>> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-laravel.log
+	# sed 's/\x1b\[[^\x1b]*m//g' ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log \
+	# 	> ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp
+	# mv ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.tmp ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
 }
 
 function get_repository() {
@@ -114,25 +117,27 @@ function check_cache_folder() {
 
 function run_pipeline () {
 
-start=`date +%s`
-echo "Start cloning and execute branch ${BRANCH_NAME}."
-echo "$(date)"
+# start=`date +%s`
+# echo "Start cloning and execute branch ${BRANCH_NAME}."
+# echo "$(date)"
 
-get_repository
+# get_repository
 
-check_cache_folder
+# check_cache_folder
 
-# If not running previous build
-if [ ! -f ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
-	start_container
-else
-    sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-*
-fi
+# # If not running previous build
+# if [ ! -f ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
+# 	start_container
+# else
+#     sudo rm -rf $BUILD_DIRECTORY/${BRANCH_NAME}-*
+# fi
 
-end=`date +%s`
-runtime=$((end-start))
+start_container
 
-report_to_slack
+# end=`date +%s`
+# runtime=$((end-start))
+
+# report_to_slack
 
 }
 
@@ -150,9 +155,10 @@ else
 
 		# If decline or merged request
 		if [ "$PULLREQUEST_STATE" = "DECLINED" ] || [ "$PULLREQUEST_STATE" = "MERGED" ]; then
-			docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
+			docker stop $(docker ps -a -q --filter="name=${REPO_SLUG}-${BRANCH_NAME}-${BRANCH_HASH}")
+			# docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
 			sudo rm -rf ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}*
-			touch ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
+			# touch ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
 			slack chat send "$PULLREQUEST_STATE testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\`"
 			statuses_build "STOPPED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
 		fi
@@ -161,21 +167,22 @@ else
 		if [ "$PULLREQUEST_STATE" = "OPEN" ]; then
 			if [ ! -z $(find ${BUILD_DIRECTORY} -maxdepth 1 -mindepth 1 -type d -name "${BRANCH_NAME}*" | sed -e 's/^.*\/builds\///') ] || [ -f $BUILD_DIRECTORY/${BRANCH_NAME}-${BRANCH_HASH}.lock ]; then
 				IS_UPDATED=true
-				docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
+				docker stop $(docker ps -a -q --filter="name=${REPO_SLUG}-${BRANCH_NAME}-${BRANCH_HASH}")
+				# docker stop $(docker ps -a -q --filter="name=${BRANCH_NAME}")
 				sudo rm -rf ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}*
-				touch ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
+				# touch ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
 				statuses_build "STOPPED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
 				slack chat send "Stopped testing of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}*" $SLACK_CHANNEL
 				slack chat send "Started again of \`branch: ${BRANCH_NAME} - hash: ${BRANCH_HASH}\` created by *${BRANCH_AUTHOR_FULLNAME}* at $(date)\n:link: : ${PULLREQUEST_WEB_LINK}" $SLACK_CHANNEL
-				start=`date +%s`
-				get_repository
-				check_cache_folder
+				# start=`date +%s`
+				# get_repository
+				# check_cache_folder
 				get_access_token
 				statuses_build "INPROGRESS" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME
-				start_container
-				end=`date +%s`
-				runtime=$((end-start))
-				report_to_slack
+				# start_container
+				# end=`date +%s`
+				# runtime=$((end-start))
+				# report_to_slack
 			else
 				# set status build in progress
 				get_access_token
@@ -188,4 +195,4 @@ else
 	fi
 fi
 
-rm ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
+# rm ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.lock
