@@ -98,7 +98,9 @@ NODE_MODULES_FOLDER=${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}/
 message "Copy vendor and node_modules folders"
 cp -r ${VENDOR_FOLDER} ${HTTP_DIR}/vendor 2>/dev/null
 cp -r ${NODE_MODULES_FOLDER} ${HTTP_DIR}/node_modules 2>/dev/null
-export PATH=$PATH:${HTTP_DIR}/node_modules/karma/bin/
+# export PATH=$PATH:${HTTP_DIR}/node_modules/karma/bin/
+echo 'export PATH=$PATH:/var/www/html/node_modules/karma/bin/' >> ~/.bashrc
+source ~/.bashrc
 ln -s ${HTTP_DIR}/node_modules ${HTTP_DIR}/public/
 BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-BE.log
 FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-FE.log
@@ -137,7 +139,7 @@ vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 message "Start FrontEnd tests"
 # front end test
 if [ -z "$( ls -A ${HTTP_DIR}/node_modules/ )" ]; then
-  npm i; 
+  npm i
 fi
 npm run testing
 npm run test 2>&1 | sed -r "s:\x1B\[[0-9;]*[mK]::g" > ${FE_LOG_FILE}
