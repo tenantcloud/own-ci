@@ -67,13 +67,27 @@ function send_logs_to_slack() {
 	slack file upload /tmp/laravel.log $SLACK_CHANNEL
 }
 
+function message() {
+	echo "$(date '+%Y-%m-%d %H:%M:%S')"
+	echo "================================================================================"
+	printf "$1\n"
+	echo "================================================================================"
+}
+
+message "Preparing to starting tests"
 source /builds/pipeline.conf
 echo $SLACK_CLI_TOKEN > /usr/local/bin/.slack
 BUILD_DIRECTORY=/builds/builds
 HTTP_DIR=/var/www/html
 
 get_webhook_data /webhook.json
+JSON_DATA="Branch:\t${BRANCH_NAME} - ${BRANCH_HASH}\n"
+JSON_DATA+="Repository:\t${BITBUCKET_USERNAME}/${REPO_SLUG}\n"
+JSON_DATA+="Developer:\t${BRANCH_AUTHOR_FULLNAME}\n"
+JSON_DATA+="Pull request:\t${PULLREQUEST_WEB_LINK}"
+message "$JSON_DATA"
 
+message "Start cloning repository"
 get_repository
 
 VENDOR_FOLDER=`md5sum ${HTTP_DIR}/composer.lock | awk '{ print $1 }'`
@@ -81,6 +95,7 @@ VENDOR_FOLDER=${BUILD_DIRECTORY}/${VENDOR_FOLDER}/
 NODE_MODULES_FOLDER=`md5sum ${HTTP_DIR}/package-lock.json | awk '{ print $1 }'`
 NODE_MODULES_FOLDER=${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}/
 
+message "Copy vendor and node_modules folders"
 cp -r ${VENDOR_FOLDER} ${HTTP_DIR}/vendor 2>/dev/null
 cp -r ${NODE_MODULES_FOLDER} ${HTTP_DIR}/node_modules 2>/dev/null
 export PATH=$PATH:${HTTP_DIR}/node_modules/karma/bin/
@@ -88,6 +103,7 @@ ln -s ${HTTP_DIR}/node_modules ${HTTP_DIR}/public/
 BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-BE.log
 FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-FE.log
 
+message "Start all needed software"
 # Start testing 
 start=`date +%s`
 
@@ -103,6 +119,7 @@ mysql -uroot -proot -e 'create database tenantcloud;'
 minio-client config host add s3 http://127.0.0.1:9000 pipeline pipeline
 sleep 5 && minio-client mb s3/pipeline
 
+message "Start PHPUnit tests"
 # back end test
 if [ ! -d  ${HTTP_DIR}/vendor ]; then
   composer install --no-interaction --no-progress --prefer-dist
@@ -117,6 +134,7 @@ php artisan config:cache
 php artisan route:cache
 vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 
+message "Start FrontEnd tests"
 # front end test
 if [ -z "$( ls -A ${HTTP_DIR}/node_modules/ )" ]; then
   npm i; 
@@ -130,6 +148,7 @@ npm run test 2>&1 | sed -r "s:\x1B\[[0-9;]*[mK]::g" > ${FE_LOG_FILE}
 end=`date +%s`
 runtime=$((end-start))
 
+message "Send notification to Slack"
 get_access_token
 
 if $BE_ERROR && $FE_ERROR ; then
@@ -156,6 +175,7 @@ else
   statuses_build "FAILED" $BITBUCKET_KEY $REPO_SLUG $LOG_FILE_LINK $SLACK_BOT_NAME  
 fi
 
+message "Copy vendor and node_modules to server if needed"
 # copy vendor 
 if [ -z "$(ls -A ${VENDOR_FOLDER})" ]; then
   cp -r ${HTTP_DIR}/vendor/ ${VENDOR_FOLDER}
