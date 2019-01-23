@@ -77,10 +77,13 @@ get_webhook_data /webhook.json
 get_repository
 
 VENDOR_FOLDER=`md5sum ${HTTP_DIR}/composer.lock | awk '{ print $1 }'`
+VENDOR_FOLDER=${BUILD_DIRECTORY}/${VENDOR_FOLDER}/
 NODE_MODULES_FOLDER=`md5sum ${HTTP_DIR}/package-lock.json | awk '{ print $1 }'`
+NODE_MODULES_FOLDER=${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}/
 
-cp -r ${BUILD_DIRECTORY}/${VENDOR_FOLDER} ${HTTP_DIR}/vendor 2>/dev/null
-cp -r ${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER} ${HTTP_DIR}/node_modules 2>/dev/null
+cp -r ${VENDOR_FOLDER} ${HTTP_DIR}/vendor 2>/dev/null
+cp -r ${NODE_MODULES_FOLDER} ${HTTP_DIR}/node_modules 2>/dev/null
+export PATH=$PATH:${HTTP_DIR}/node_modules/karma/bin/
 ln -s ${HTTP_DIR}/node_modules ${HTTP_DIR}/public/
 BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-BE.log
 FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-FE.log
@@ -115,11 +118,7 @@ php artisan route:cache
 vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 
 # front end test
-if [ ! -d ${HTTP_DIR}/node_modules ]; then
-  nmp i 
-fi
-FLDR_SIZE=$(du -s ${HTTP_DIR}/node_modules | awk '{print $1}')
-if [ ${FLDR_SIZE} -lt 100 ]; then 
+if [ -z "$( ls -A ${HTTP_DIR}/node_modules/ )" ]; then
   npm i; 
 fi
 npm run testing
@@ -158,8 +157,10 @@ else
 fi
 
 # copy vendor 
-if [ ! -d "${BUILD_DIRECTORY}/${VENDOR_FOLDER}/" ]; then \
-    cp -r ${HTTP_DIR}/vendor/ ${BUILD_DIRECTORY}/${VENDOR_FOLDER}/ ;  fi
+if [ -z "$(ls -A ${VENDOR_FOLDER})" ]; then
+  cp -r ${HTTP_DIR}/vendor/ ${VENDOR_FOLDER}
+fi
 # copy node_modules
-if [ ! -d "${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}/" ]; then \
-    cp -r ${HTTP_DIR}/node_modules/ ${BUILD_DIRECTORY}/${NODE_MODULES_FOLDER}/ ;  fi
+if [ -z "$(ls -A ${NODE_MODULES_FOLDER})" ]; then
+  cp -r ${HTTP_DIR}/node_modules/ ${NODE_MODULES_FOLDER}
+fi
