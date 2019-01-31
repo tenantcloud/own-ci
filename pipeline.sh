@@ -59,12 +59,15 @@ function get_access_token() {
 # Send file to slack channel
 function send_logs_to_slack() {
 	SLACK_JSON_FILE="${BUILD_DIRECTORY}/$(date +%s).json"
-	slack file upload $BE_LOG_FILE $SLACK_CHANNEL > ${SLACK_JSON_FILE}
+  cat $BE_LOG_FILE > $LOG_FILE
+  perl -pe 's/\x1b\[[0-9;]*[a-zA-Z]//g' $FE_LOG_FILE >> $LOG_FILE
+	slack file upload $LOG_FILE $SLACK_CHANNEL > ${SLACK_JSON_FILE}
 	LOG_FILE_LINK=$(jq -r .file.url_private ${SLACK_JSON_FILE})
 	rm ${SLACK_JSON_FILE}
-	slack file upload $FE_LOG_FILE $SLACK_CHANNEL
+	# slack file upload $FE_LOG_FILE $SLACK_CHANNEL
     cat $HTTP_DIR/storage/logs/laravel* > /tmp/laravel.log
 	slack file upload /tmp/laravel.log $SLACK_CHANNEL
+  # To-Do: Add delete all log files
 }
 
 function message() {
@@ -104,6 +107,7 @@ source ~/.bashrc
 ln -s ${HTTP_DIR}/node_modules ${HTTP_DIR}/public/
 BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-BE.log
 FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-FE.log
+LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
 
 message "Start all needed software"
 # Start testing 
