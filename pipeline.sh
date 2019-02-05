@@ -138,7 +138,7 @@ php artisan migrate --force
 php artisan db:seed
 php artisan config:cache
 php artisan route:cache
-vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+vendor/bin/phpunit -c phpunit.xml --testsuite All 2>&1 | tee ${BE_LOG_FILE}
 
 message "Start FrontEnd tests"
 # front end test
