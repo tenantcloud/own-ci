@@ -84,7 +84,7 @@ BUILD_DIRECTORY=/builds/builds
 HTTP_DIR=/var/www/html
 
 get_webhook_data /webhook.json
-JSON_DATA="Branch:\t${BRANCH_NAME} - ${BRANCH_HASH}\n"
+JSON_DATA="Branch/HASH:\t${BRANCH_NAME} - ${BRANCH_HASH}\n"
 JSON_DATA+="Repository:\t${BITBUCKET_USERNAME}/${REPO_SLUG}\n"
 JSON_DATA+="Developer:\t${BRANCH_AUTHOR_FULLNAME}\n"
 JSON_DATA+="Pull request:\t${PULLREQUEST_WEB_LINK}"
@@ -134,11 +134,12 @@ FLDR_SIZE=$(du -s ${HTTP_DIR}/vendor | awk '{print $1}')
 if [ "${FLDR_SIZE}" -eq "0" ]; then 
   composer install --no-interaction --no-progress --prefer-dist
 fi
+composer dump-autoload -o
 php artisan migrate --force
 php artisan db:seed
 php artisan config:cache
 php artisan route:cache
-vendor/bin/phpunit -c phpunit.xml --testsuite All 2>&1 | tee ${BE_LOG_FILE}
+vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 
 message "Start FrontEnd tests"
 # front end test
