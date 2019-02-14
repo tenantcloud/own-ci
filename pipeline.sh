@@ -139,7 +139,23 @@ php artisan migrate --force
 php artisan db:seed
 php artisan config:cache
 php artisan route:cache
-vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+
+# Run ParaTest if exists or PhpUnit
+PARATEST="vendor/bin/paratest"
+if [ -f "$PARATEST" ]
+then
+    # Number of processes (CPU cores * 2)
+    PROCESSES=8
+    # Create new DBs (skip 1 because already created) and copy data from main DB
+    for i in $(seq 2 $PROCESSES); do
+        mysql -uroot -proot -e "create database tenantcloud_$i";
+        mysqldump --add-drop-table -uroot -proot tenantcloud | mysql -uroot -proot tenantcloud_$i
+    done
+
+    vendor/bin/paratest -p"$PROCESSES" -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+else
+    vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+fi
 
 message "Start FrontEnd tests"
 # front end test
