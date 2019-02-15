@@ -128,10 +128,12 @@ sleep 5 && minio-client mb s3/pipeline
 message "Start PHPUnit tests"
 # back end test
 if [ ! -d  ${HTTP_DIR}/vendor ]; then
+  composer global require hirak/prestissimo # parallel download for composer
   composer install --no-interaction --no-progress --prefer-dist
 fi
 FLDR_SIZE=$(du -s ${HTTP_DIR}/vendor | awk '{print $1}')
-if [ "${FLDR_SIZE}" -eq "0" ]; then 
+if [ "${FLDR_SIZE}" -eq "0" ]; then
+  composer global require hirak/prestissimo # parallel download for composer
   composer install --no-interaction --no-progress --prefer-dist
 fi
 composer dump-autoload -o
@@ -144,17 +146,32 @@ php artisan route:cache
 PARATEST="vendor/bin/paratest"
 if [ -f "$PARATEST" ]
 then
-    # Number of processes (CPU cores * 2)
-    PROCESSES=8
-    # Create new DBs (skip 1 because already created) and copy data from main DB
-    for i in $(seq 2 $PROCESSES); do
-        mysql -uroot -proot -e "create database tenantcloud_$i";
-        mysqldump --add-drop-table -uroot -proot tenantcloud | mysql -uroot -proot tenantcloud_$i
-    done
+  # Main DB name
+  DB_NAME="tenantcloud"
+  # File for dump main DB
+  DUMP_FILE="/tmp/tenantcloud_dump.sql.gz"
 
-    vendor/bin/paratest -p"$PROCESSES" -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+  echo "Create  dump from DB $DB_NAME"
+  mysqldump --single-transaction --routines --events --extended-insert -uroot -proot $DB_NAME | gzip > $DUMP_FILE
+
+  # Number of processes (CPU cores * 2)
+  PROCESSES=8
+  # Create new DBs (skip 1 because already created) and copy data from main DB
+  for i in $(seq 2 $PROCESSES); do
+    # New DB name
+    DB_NAME_NEW="${DB_NAME}_${i}"
+
+    echo "Create DB $DB_NAME_NEW and import data"
+    mysql -uroot -proot -e "create database $DB_NAME_NEW"
+    gunzip < $DUMP_FILE | mysql -uroot -proot $DB_NAME_NEW
+  done
+
+  # Remove dump file
+  rm $DUMP_FILE
+
+  vendor/bin/paratest -p"$PROCESSES" -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 else
-    vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+  vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 fi
 
 message "Start FrontEnd tests"
