@@ -66,7 +66,7 @@ function send_logs_to_slack() {
 }
 
 function start_container() {
-    docker run --rm -it --name="${REPO_SLUG}-${BRANCH_NAME}-${BRANCH_HASH}" \
+    docker run --rm -it --name="${REPO_SLUG}-$(echo ${BRANCH_NAME} | sed 's/\//-/')-${BRANCH_HASH}" \
 		-v $(echo $HOME)/.ssh:/root/.ssh \
 		-v $(pwd):/builds \
 		-v ${WEBHOOK_JSON_FILE}:/webhook.json \

@@ -77,7 +77,7 @@ function message() {
 	echo "================================================================================"
 }
 
-message "Preparing to starting tests"
+message "Preparing to start tests"
 source /builds/pipeline.conf
 echo $SLACK_CLI_TOKEN > /usr/local/bin/.slack
 BUILD_DIRECTORY=/builds/builds
