@@ -4,6 +4,7 @@
 function get_webhook_data() {
 	# As parameter write path to webhook json file
 	BRANCH_NAME=$(jq -r '.pullrequest.source.branch.name' $1)
+  BRANCH_NAME_FILTERED=$(echo ${BRANCH_NAME} | sed 's/\//-/')
 	BRANCH_HASH=$(jq -r '.pullrequest.source.commit.hash' $1)
 	BRANCH_AUTHOR=$(jq -r '.pullrequest.author.username' $1)
 	BRANCH_AUTHOR_FULLNAME=$(jq -r '.pullrequest.author.display_name' $1)
@@ -39,9 +40,9 @@ curl -X POST \
 # Download archive to container
 function get_repository() {
 	git archive --remote=ssh://git@bitbucket.org/${BITBUCKET_USERNAME}/${REPO_SLUG}.git --format=zip \
-		--output="/${BRANCH_NAME}-${BRANCH_HASH}.zip" $BRANCH_NAME
-	unzip -qq /${BRANCH_NAME}-${BRANCH_HASH}.zip -d /var/www/html/
-	rm /${BRANCH_NAME}-${BRANCH_HASH}.zip
+		--output="/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}.zip" $BRANCH_NAME
+	unzip -qq /${BRANCH_NAME_FILTERED}-${BRANCH_HASH}.zip -d /var/www/html/
+	rm /${BRANCH_NAME_FILTERED}-${BRANCH_HASH}.zip
 }
 
 # Get bitbucket access token
@@ -105,9 +106,9 @@ cp -r ${NODE_MODULES_FOLDER} ${HTTP_DIR}/node_modules 2>/dev/null
 echo 'export PATH=$PATH:/var/www/html/node_modules/karma/bin/' >> ~/.bashrc
 source ~/.bashrc
 ln -s ${HTTP_DIR}/node_modules ${HTTP_DIR}/public/
-BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-BE.log
-FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}-FE.log
-LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.log
+BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}-BE.log
+FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}-FE.log
+LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}.log
 
 message "Start all needed software"
 # Start testing 
