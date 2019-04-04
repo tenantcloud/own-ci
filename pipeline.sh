@@ -140,7 +140,7 @@ fi
 composer dump-autoload -o
 php artisan migrate --force
 php artisan db:seed
-php artisan config:cache
+# php artisan config:cache
 php artisan route:cache
 
 # Run ParaTest if exists or PhpUnit
