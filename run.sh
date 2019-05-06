@@ -66,7 +66,7 @@ function send_logs_to_slack() {
 }
 
 function start_container() {
-    docker run --rm -it --name="${REPO_SLUG}-${BRANCH_NAME}-${BRANCH_HASH}" \
+    docker run --rm -it --name="${REPO_SLUG}-$(echo ${BRANCH_NAME} | sed 's/\//-/')-${BRANCH_HASH}" \
 		-v $(echo $HOME)/.ssh:/root/.ssh \
 		-v $(pwd):/builds \
 		-v ${WEBHOOK_JSON_FILE}:/webhook.json \
@@ -150,8 +150,8 @@ else
 # Check if getting correct JSON file
 	if jq -e . >/dev/null 2>&1 <<< $(cat ./webhook.json); then
 		get_webhook_data "./webhook.json"
-		WEBHOOK_JSON_FILE="${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.json"
-		mv ./webhook.json ${BUILD_DIRECTORY}/${BRANCH_NAME}-${BRANCH_HASH}.json
+		WEBHOOK_JSON_FILE="${BUILD_DIRECTORY}/$(echo ${BRANCH_NAME} | sed 's/\//-/')-${BRANCH_HASH}.json"
+		mv ./webhook.json ${WEBHOOK_JSON_FILE}
 
 		# If decline or merged request
 		if [ "$PULLREQUEST_STATE" = "DECLINED" ] || [ "$PULLREQUEST_STATE" = "MERGED" ]; then
