@@ -149,10 +149,10 @@ then
   # Main DB name
   DB_NAME="tenantcloud"
   # File for dump main DB
-  DUMP_FILE="/tmp/tenantcloud_dump.sql.gz"
+  DUMP_FILE="/tmp/tenantcloud_dump.sql"
 
   echo "Create  dump from DB $DB_NAME"
-  mysqldump --single-transaction --routines --events --extended-insert -uroot -proot $DB_NAME | gzip > $DUMP_FILE
+  mysqldump --single-transaction --routines --events --extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
 
   # Number of processes (CPU cores * 2)
   PROCESSES=8
@@ -163,7 +163,7 @@ then
 
     echo "Create DB $DB_NAME_NEW and import data"
     mysql -uroot -proot -e "create database $DB_NAME_NEW"
-    gunzip < $DUMP_FILE | mysql -uroot -proot $DB_NAME_NEW
+    mysql -uroot -proot $DB_NAME_NEW < $DUMP_FILE
   done
 
   # Remove dump file
