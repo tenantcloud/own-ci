@@ -175,6 +175,20 @@ else
   vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 fi
 
+# Check if php-cs-fixer installed
+if [ -f 'vendor/bin/php-cs-fixer' ]
+then
+    echo "Check PHP Coding Standards"
+    COMMIT_RANGE='HEAD~..HEAD' # need change to source_branch..destination_branch ($CI_COMMIT_RANGE)
+    CHANGED_FILES=$(git diff --name-only --cached -- '*.php' --diff-filter=ACMRTUXB "${COMMIT_RANGE}")
+    if [ -z "${CHANGED_FILES}" ]; then
+    	echo "done"
+    else
+    	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${CHANGED_FILES}");
+        vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --using-cache=no ${EXTRA_ARGS}
+    fi
+fi
+
 message "Start FrontEnd tests"
 # front end test
 if [ -z "$( ls -A ${HTTP_DIR}/node_modules/ )" ]; then
