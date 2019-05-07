@@ -13,7 +13,7 @@ function get_access_token() {
 		https://bitbucket.org/site/oauth2/access_token \
 		-H 'Cache-Control: no-cache' \
 		-H 'Content-Type: application/x-www-form-urlencoded' \
-		-d "client_id=${CLIENT_ID}&grant_type=${GRANT_TYPE}&client_secret=${CLIENT_SECRET}" -o token.json
+		-d "client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&grant_type=client_credentials" -o token.json
     
     ACCESS_TOKEN=$(jq -r '.access_token' $(pwd)/token.json)
     rm $(pwd)/token.json
@@ -53,6 +53,7 @@ function get_webhook_data() {
 	BITBUCKET_KEY=$(jq -r '.repository.project.key' $1)
 	REPO_SLUG=$(jq -r '.repository.name' $1)
 	BITBUCKET_USERNAME=$(jq -r '.repository.owner.username' $1)
+	DIFF_API_LINK=$(jq -r '.pullrequest.links.diff.href' $1)
 }
 
 function send_logs_to_slack() {

@@ -52,7 +52,7 @@ function get_access_token() {
 		https://bitbucket.org/site/oauth2/access_token \
 		-H 'Cache-Control: no-cache' \
 		-H 'Content-Type: application/x-www-form-urlencoded' \
-		-d "client_id=${CLIENT_ID}&grant_type=${GRANT_TYPE}&client_secret=${CLIENT_SECRET}" -o token.json
+		-d "client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&grant_type=client_credentials" -o token.json
     
     ACCESS_TOKEN=$(jq -r '.access_token' $(pwd)/token.json)
     rm $(pwd)/token.json
@@ -183,11 +183,12 @@ then
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
     CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRTUXB "${COMMIT_RANGE}" | grep '.php')
     if [ -z "${CHANGED_FILES}" ]; then
-    	echo "done"
+    	EXTRA_ARGS=''
     else
     	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${CHANGED_FILES}");
-        vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --using-cache=no ${EXTRA_ARGS}
     fi
+
+    vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --using-cache=no ${EXTRA_ARGS}
 fi
 
 message "Start FrontEnd tests"
