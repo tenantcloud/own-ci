@@ -4,7 +4,7 @@
 function get_webhook_data() {
 	# As parameter write path to webhook json file
 	BRANCH_NAME=$(jq -r '.pullrequest.source.branch.name' $1)
-  BRANCH_NAME_FILTERED=$(echo ${BRANCH_NAME} | sed 's/\//-/')
+    BRANCH_NAME_FILTERED=$(echo ${BRANCH_NAME} | sed 's/\//-/')
 	BRANCH_HASH=$(jq -r '.pullrequest.source.commit.hash' $1)
 	BRANCH_AUTHOR=$(jq -r '.pullrequest.author.username' $1)
 	BRANCH_AUTHOR_FULLNAME=$(jq -r '.pullrequest.author.display_name' $1)
@@ -14,6 +14,7 @@ function get_webhook_data() {
 	BITBUCKET_KEY=$(jq -r '.repository.project.key' $1)
 	REPO_SLUG=$(jq -r '.repository.name' $1)
 	BITBUCKET_USERNAME=$(jq -r '.repository.owner.username' $1)
+	DESTINATION_BRANCH_NAME=$(jq -r '.pullrequest.destination.branch.name' $1)
 }
 
 # Set build status on pullrequest commit
@@ -179,8 +180,8 @@ fi
 if [ -f 'vendor/bin/php-cs-fixer' ]
 then
     echo "Check PHP Coding Standards"
-    COMMIT_RANGE='HEAD~..HEAD' # need change to source_branch..destination_branch ($CI_COMMIT_RANGE)
-    CHANGED_FILES=$(git diff --name-only --cached -- '*.php' --diff-filter=ACMRTUXB "${COMMIT_RANGE}")
+    COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
+    CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRTUXB "${COMMIT_RANGE}" | grep '.php')
     if [ -z "${CHANGED_FILES}" ]; then
     	echo "done"
     else
