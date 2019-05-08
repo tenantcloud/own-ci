@@ -61,12 +61,11 @@ function get_access_token() {
 }
 
 function get_diff_stats() {
+	get_access_token
     curl -L --silent "${SELF_API_LINK}/diffstat?access_token=${ACCESS_TOKEN}" -o $(pwd)/diffstat.json
 
     PIPELINE_CHANGED_FILES=$(jq -r '.values[] .new.path' $(pwd)/diffstat.json | grep '.php$' | sed "s/\"//g")
     rm $(pwd)/diffstat.json
-
-    echo "${PIPELINE_CHANGED_FILES}"
 }
 
 # Send file to slack channel
