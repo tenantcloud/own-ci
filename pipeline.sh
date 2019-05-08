@@ -16,7 +16,7 @@ function get_webhook_data() {
 	BITBUCKET_USERNAME=$(jq -r '.repository.owner.username' $1)
 	DESTINATION_BRANCH_NAME=$(jq -r '.pullrequest.destination.branch.name' $1)
 	SELF_API_LINK=$(jq -r '.pullrequest.links.self.href' $1)
-	PIPELINE_CHANGED_FILES=""
+	PIPELINE_CHANGED_FILES=''
 }
 
 # Set build status on pullrequest commit
@@ -65,6 +65,8 @@ function get_diff_stats() {
 
     PIPELINE_CHANGED_FILES=$(jq -r '.values[] .new.path' $(pwd)/diffstat.json | grep '.php$' | sed "s/\"//g")
     rm $(pwd)/diffstat.json
+
+    echo "${PIPELINE_CHANGED_FILES}"
 }
 
 # Send file to slack channel
@@ -164,9 +166,13 @@ then
   DB_NAME="tenantcloud"
   # File for dump main DB
   DUMP_FILE="/tmp/tenantcloud_dump.sql"
+  DUMP_FILE_WO_AUTOINC="/tmp/tenantcloud_wo_autoinc_dump.sql"
 
   echo "Create  dump from DB $DB_NAME"
-  mysqldump --single-transaction --routines --events --extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
+  mysqldump --opt --single-transaction --compact --skip-extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
+
+  # Remove increments from initial dump
+  sed 's/ AUTO_INCREMENT=[0-9]*\b//g' $DUMP_FILE > $DUMP_FILE_WO_AUTOINC
 
   # Number of processes (CPU cores * 2)
   PROCESSES=8
@@ -184,6 +190,30 @@ then
   rm $DUMP_FILE
 
   vendor/bin/paratest -p"$PROCESSES" -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
+
+  # Dump databases to compare with initial one
+  for i in $(seq 1 $PROCESSES); do
+    # New DB name
+    DB_NAME_NEW="${DB_NAME}_${i}"
+    AFTER_TEST_DUMP_FILE="/tmp/${DB_NAME_NEW}.sql"
+
+    # First DB_NAME is without index
+    if [ "$i" -eq "1" ]; then
+      DB_NAME_NEW=$DB_NAME
+    fi
+
+    echo "Create DB $AFTER_TEST_DUMP_FILE and compare data"
+    mysqldump --opt --single-transaction --compact --skip-extended-insert -uroot -proot \
+    $DB_NAME | sed 's/ AUTO_INCREMENT=[0-9]*\b//g' > $AFTER_TEST_DUMP_FILE 2>/dev/null
+
+    # Compute diff
+    DIFF=`diff $DUMP_FILE_WO_AUTOINC $AFTER_TEST_DUMP_FILE | wc -l`
+    if [ $DIFF -gt 0 ]; then
+      echo "${AFTER_TEST_DUMP_FILE} differs from initial ${DUMP_FILE_WO_AUTOINC}"
+      echo "Probably there is double DB::commit in the code or file without DatabaseTransactions"
+    fi
+  done
+
 else
   vendor/bin/phpunit -c phpunit.xml tests/Backend 2>&1 | tee ${BE_LOG_FILE}
 fi
