@@ -208,8 +208,9 @@ then
     # Compute diff
     DIFF=`diff $DUMP_FILE_WO_AUTOINC $AFTER_TEST_DUMP_FILE | wc -l`
     if [ $DIFF -gt 0 ]; then
-      echo "${AFTER_TEST_DUMP_FILE} differs from initial ${DUMP_FILE_WO_AUTOINC}"
-      echo "Probably there is double DB::commit in the code or file without DatabaseTransactions"
+      echo "${AFTER_TEST_DUMP_FILE} differs from initial ${DUMP_FILE_WO_AUTOINC}" 2>&1 | tee -a ${BE_LOG_FILE}
+      echo "Probably there is double DB::commit in the code or file without DatabaseTransactions" 2>&1 | tee -a ${BE_LOG_FILE}
+      BE_ERROR=true
     fi
   done
 
@@ -220,13 +221,13 @@ fi
 # Check if php-cs-fixer installed
 if [ -f 'vendor/bin/php-cs-fixer' ]
 then
-    message "Check PHP Coding Standards"
+    echo "Check PHP Coding Standards\n" | tee -a ${BE_LOG_FILE}
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
     if [ -z "${PIPELINE_CHANGED_FILES}" ]; then
     	echo '-empty'
     else
     	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${PIPELINE_CHANGED_FILES}");
-    	vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS} 2>&1 >> ${BE_LOG_FILE}
+    	vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS} 2>&1 | tee -a ${BE_LOG_FILE}
     fi
 fi
 
