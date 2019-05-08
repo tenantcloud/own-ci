@@ -16,6 +16,7 @@ function get_webhook_data() {
 	BITBUCKET_USERNAME=$(jq -r '.repository.owner.username' $1)
 	DESTINATION_BRANCH_NAME=$(jq -r '.pullrequest.destination.branch.name' $1)
 	SELF_API_LINK=$(jq -r '.pullrequest.links.self.href' $1)
+	PIPELINE_CHANGED_FILES=""
 }
 
 # Set build status on pullrequest commit
@@ -61,6 +62,9 @@ function get_access_token() {
 
 function get_diff_stats() {
     curl -L --silent "${SELF_API_LINK}/diffstat?access_token=${ACCESS_TOKEN}" -o diffstat.json
+
+    PIPELINE_CHANGED_FILES=$(jq -r '.values[] .new.path' $(pwd)/diffstat.json | sed "s/\"//g")
+    rm $(pwd)/diffstat.json
 }
 
 # Send file to slack channel
@@ -189,14 +193,13 @@ if [ -f 'vendor/bin/php-cs-fixer' ]
 then
     echo "Check PHP Coding Standards"
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
-    CHANGED_FILES=$(cat diffstat.json | jq '.values[] .new.path' | sed "s/\"//g")
-    if [ -z "${CHANGED_FILES}" ]; then
+    if [ -z "${PIPELINE_CHANGED_FILES}" ]; then
     	EXTRA_ARGS=''
     else
-    	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${CHANGED_FILES}");
+    	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${PIPELINE_CHANGED_FILES}");
     fi
 
-    vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --using-cache=no ${EXTRA_ARGS}
+    vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS}
 fi
 
 message "Start FrontEnd tests"
