@@ -50,7 +50,7 @@ function get_repository() {
 
 # Get bitbucket access token
 function get_access_token() {
-    curl -X POST \
+    curl --silent -X POST \
 		https://bitbucket.org/site/oauth2/access_token \
 		-H 'Cache-Control: no-cache' \
 		-H 'Content-Type: application/x-www-form-urlencoded' \
@@ -168,7 +168,7 @@ then
   DUMP_FILE_WO_AUTOINC="/tmp/tenantcloud_wo_autoinc_dump.sql"
 
   echo "Create  dump from DB $DB_NAME"
-  mysqldump --opt --single-transaction --compact --skip-extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
+  mysqldump --opt --single-transaction --compact --routines --events --extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
 
   # Remove increments from initial dump
   sed 's/ AUTO_INCREMENT=[0-9]*\b//g' $DUMP_FILE > $DUMP_FILE_WO_AUTOINC
@@ -220,8 +220,7 @@ fi
 # Check if php-cs-fixer installed
 if [ -f 'vendor/bin/php-cs-fixer' ]
 then
-    echo "Check PHP Coding Standards"
-    echo "${PIPELINE_CHANGED_FILES}"
+    message "Check PHP Coding Standards"
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
     if [ -z "${PIPELINE_CHANGED_FILES}" ]; then
     	EXTRA_ARGS=''
