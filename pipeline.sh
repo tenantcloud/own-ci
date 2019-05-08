@@ -63,7 +63,7 @@ function get_access_token() {
 function get_diff_stats() {
     curl -L --silent "${SELF_API_LINK}/diffstat?access_token=${ACCESS_TOKEN}" -o diffstat.json
 
-    PIPELINE_CHANGED_FILES=$(jq -r '.values[] .new.path' $(pwd)/diffstat.json | sed "s/\"//g")
+    PIPELINE_CHANGED_FILES=$(jq -r '.values[] .new.path' $(pwd)/diffstat.json | grep '.php$' | sed "s/\"//g")
     rm $(pwd)/diffstat.json
 }
 
@@ -192,6 +192,7 @@ fi
 if [ -f 'vendor/bin/php-cs-fixer' ]
 then
     echo "Check PHP Coding Standards"
+    echo "${PIPELINE_CHANGED_FILES}"
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
     if [ -z "${PIPELINE_CHANGED_FILES}" ]; then
     	EXTRA_ARGS=''
