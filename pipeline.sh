@@ -226,7 +226,7 @@ then
     	echo '-empty'
     else
     	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${PIPELINE_CHANGED_FILES}");
-    	vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS} 2>&1 | tee ${BE_LOG_FILE}
+    	vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS} 2>&1 >> ${BE_LOG_FILE}
     fi
 fi
 
