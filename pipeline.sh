@@ -168,7 +168,7 @@ then
   DUMP_FILE_WO_AUTOINC="/tmp/tenantcloud_wo_autoinc_dump.sql"
 
   echo "Create  dump from DB $DB_NAME"
-  mysqldump --opt --single-transaction --skip-extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
+  mysqldump --opt --single-transaction --skip-extended-insert -uroot -proot $DB_NAME > $DUMP_FILE 2>/dev/null
 
   # Remove increments from initial dump
   sed 's/ AUTO_INCREMENT=[0-9]*\b//g' $DUMP_FILE | sed 's/-- Dump completed on.*//g' > $DUMP_FILE_WO_AUTOINC
