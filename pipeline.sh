@@ -168,10 +168,10 @@ then
   DUMP_FILE_WO_AUTOINC="/tmp/tenantcloud_wo_autoinc_dump.sql"
 
   echo "Create  dump from DB $DB_NAME"
-  mysqldump --opt --single-transaction --compact --routines --events --extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
+  mysqldump --opt --single-transaction --skip-extended-insert -uroot -proot $DB_NAME > $DUMP_FILE
 
   # Remove increments from initial dump
-  sed 's/ AUTO_INCREMENT=[0-9]*\b//g' $DUMP_FILE > $DUMP_FILE_WO_AUTOINC
+  sed 's/ AUTO_INCREMENT=[0-9]*\b//g' $DUMP_FILE | sed 's/-- Dump completed on.*//g' > $DUMP_FILE_WO_AUTOINC
 
   # Number of processes (CPU cores * 2)
   PROCESSES=8
@@ -181,8 +181,8 @@ then
     DB_NAME_NEW="${DB_NAME}_${i}"
 
     echo "Create DB $DB_NAME_NEW and import data"
-    mysql -uroot -proot -e "create database $DB_NAME_NEW"
-    mysql -uroot -proot $DB_NAME_NEW < $DUMP_FILE
+    mysql -uroot -proot -e "create database $DB_NAME_NEW" 2>/dev/null
+    mysql -uroot -proot $DB_NAME_NEW < $DUMP_FILE 2>/dev/null
   done
 
   # Remove dump file
@@ -202,8 +202,8 @@ then
     fi
 
     echo "Create DB $AFTER_TEST_DUMP_FILE and compare data"
-    mysqldump --opt --single-transaction --compact --skip-extended-insert -uroot -proot \
-    $DB_NAME | sed 's/ AUTO_INCREMENT=[0-9]*\b//g' > $AFTER_TEST_DUMP_FILE 2>/dev/null
+    mysqldump --opt --single-transaction --skip-extended-insert -uroot -proot \
+    $DB_NAME | sed 's/ AUTO_INCREMENT=[0-9]*\b//g' | sed 's/-- Dump completed on.*//g' > $AFTER_TEST_DUMP_FILE 2>/dev/null
 
     # Compute diff
     DIFF=`diff $DUMP_FILE_WO_AUTOINC $AFTER_TEST_DUMP_FILE | wc -l`
