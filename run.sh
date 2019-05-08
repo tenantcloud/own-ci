@@ -53,7 +53,6 @@ function get_webhook_data() {
 	BITBUCKET_KEY=$(jq -r '.repository.project.key' $1)
 	REPO_SLUG=$(jq -r '.repository.name' $1)
 	BITBUCKET_USERNAME=$(jq -r '.repository.owner.username' $1)
-	DIFF_API_LINK=$(jq -r '.pullrequest.links.diff.href' $1)
 }
 
 function send_logs_to_slack() {

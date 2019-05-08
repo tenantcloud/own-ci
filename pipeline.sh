@@ -15,6 +15,7 @@ function get_webhook_data() {
 	REPO_SLUG=$(jq -r '.repository.name' $1)
 	BITBUCKET_USERNAME=$(jq -r '.repository.owner.username' $1)
 	DESTINATION_BRANCH_NAME=$(jq -r '.pullrequest.destination.branch.name' $1)
+	SELF_API_LINK=$(jq -r '.pullrequest.links.self.href' $1)
 }
 
 # Set build status on pullrequest commit
@@ -56,6 +57,13 @@ function get_access_token() {
     
     ACCESS_TOKEN=$(jq -r '.access_token' $(pwd)/token.json)
     rm $(pwd)/token.json
+}
+
+function get_diff_stats() {
+wget --quiet \
+  --method GET \
+  --output-document \
+  - "${SELF_API_LINK}/diffstat?access_token=${ACCESS_TOKEN}" -O diffstat.json
 }
 
 # Send file to slack channel
@@ -110,6 +118,9 @@ ln -s ${HTTP_DIR}/node_modules ${HTTP_DIR}/public/
 BE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}-BE.log
 FE_LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}-FE.log
 LOG_FILE=${BUILD_DIRECTORY}/${BRANCH_NAME_FILTERED}-${BRANCH_HASH}.log
+
+message "Get diff statistics for current branch"
+get_diff_stats
 
 message "Start all needed software"
 # Start testing 
@@ -181,7 +192,7 @@ if [ -f 'vendor/bin/php-cs-fixer' ]
 then
     echo "Check PHP Coding Standards"
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
-    CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRTUXB "${COMMIT_RANGE}" | grep '.php')
+    CHANGED_FILES=$(cat diffstat.json | jq '.values[] .new.path' | sed "s/\"//g")
     if [ -z "${CHANGED_FILES}" ]; then
     	EXTRA_ARGS=''
     else
