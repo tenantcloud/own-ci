@@ -228,7 +228,7 @@ then
     	EXTRA_ARGS=$(printf -- '--path-mode=intersection\n--\n%s' "${PIPELINE_CHANGED_FILES}");
     fi
 
-    vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS}
+    vendor/bin/php-cs-fixer fix --config=.php_cs.dist -v --dry-run --show-progress=estimating --using-cache=no ${EXTRA_ARGS} 2>&1 | tee ${BE_LOG_FILE}
 fi
 
 message "Start FrontEnd tests"
