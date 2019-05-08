@@ -221,7 +221,7 @@ fi
 # Check if php-cs-fixer installed
 if [ -f 'vendor/bin/php-cs-fixer' ]
 then
-    echo "Check PHP Coding Standards\n" | tee -a ${BE_LOG_FILE}
+    echo "\nCheck PHP Coding Standards" 2>&1 | tee -a ${BE_LOG_FILE}
     COMMIT_RANGE="HEAD..${DESTINATION_BRANCH_NAME}"
     if [ -z "${PIPELINE_CHANGED_FILES}" ]; then
     	echo '-empty'
