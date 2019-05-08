@@ -60,10 +60,7 @@ function get_access_token() {
 }
 
 function get_diff_stats() {
-wget --quiet \
-  --method GET \
-  --output-document \
-  - "${SELF_API_LINK}/diffstat?access_token=${ACCESS_TOKEN}" -O diffstat.json
+    curl -L --silent "${SELF_API_LINK}/diffstat?access_token=${ACCESS_TOKEN}" -o diffstat.json
 }
 
 # Send file to slack channel
