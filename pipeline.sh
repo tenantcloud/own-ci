@@ -4,7 +4,7 @@
 function get_webhook_data() {
 	# As parameter write path to webhook json file
 	BRANCH_NAME=$(jq -r '.pullrequest.source.branch.name' $1)
-    BRANCH_NAME_FILTERED=$(echo ${BRANCH_NAME} | sed 's/\//-/')
+  BRANCH_NAME_FILTERED=$(echo ${BRANCH_NAME} | sed 's/\//-/')
 	BRANCH_HASH=$(jq -r '.pullrequest.source.commit.hash' $1)
 	BRANCH_AUTHOR=$(jq -r '.pullrequest.author.username' $1)
 	BRANCH_AUTHOR_FULLNAME=$(jq -r '.pullrequest.author.display_name' $1)
@@ -104,6 +104,9 @@ message "$JSON_DATA"
 
 message "Start cloning repository"
 get_repository
+
+bash /var/www/html/sh/pipeline.sh
+exit
 
 VENDOR_FOLDER=`md5sum ${HTTP_DIR}/composer.lock | awk '{ print $1 }'`
 VENDOR_FOLDER=${BUILD_DIRECTORY}/${VENDOR_FOLDER}/
